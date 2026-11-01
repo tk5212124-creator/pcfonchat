@@ -7,6 +7,8 @@ const crypto = require('crypto');
 const os = require('os');
 
 const PORT = Number(process.env.PORT) || 3000;
+// 127.0.0.1 にすると PC 自身（と tailscale serve）からしか接続できなくなる
+const HOST = process.env.HOST || '0.0.0.0';
 const PASSWORD = process.env.PASSWORD || ''; // 設定するとログインが必要になる（公開時は必須）
 const MAX_UPLOAD = (Number(process.env.MAX_UPLOAD_MB) || 200) * 1024 * 1024;
 const KEEP_DAYS = Number(process.env.KEEP_DAYS) || 0; // 0 = 自動削除しない
@@ -117,7 +119,8 @@ function serveFile(res, file, { download, upload } = {}) {
 function sameOrigin(req) {
   const o = req.headers.origin;
   if (!o) return true;
-  try { return new URL(o).host === req.headers.host; } catch { return false; }
+  const hosts = [req.headers.host, ...String(req.headers['x-forwarded-host'] || '').split(',')].map((h) => String(h || '').trim()).filter(Boolean);
+  try { return hosts.includes(new URL(o).host); } catch { return false; }
 }
 
 const server = http.createServer((req, res) => {
@@ -213,9 +216,10 @@ const server = http.createServer((req, res) => {
 });
 
 server.requestTimeout = 0; // 大きいファイルのアップロードを途中で切らない
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, HOST, () => {
   console.log(`pcfonchat 起動: http://localhost:${PORT}  (データ: ${DATA_DIR})`);
-  for (const list of Object.values(os.networkInterfaces()))
-    for (const a of list || []) if (a.family === 'IPv4' && !a.internal) console.log(`  同じWi-Fiから → http://${a.address}:${PORT}`);
-  if (!PASSWORD) console.log('  ⚠ パスワードなし。インターネットに公開する場合は PASSWORD=xxx を必ず設定してください');
+  if (HOST === '127.0.0.1' || HOST === 'localhost') console.log('  この PC 内からのみ接続を受け付けます（Tailscale 経由は tailscale serve を使用）');
+  else for (const list of Object.values(os.networkInterfaces()))
+    for (const a of list || []) if (a.family === 'IPv4' && !a.internal) console.log(`  同じネットワーク/Tailscaleから → http://${a.address}:${PORT}`);
+  if (!PASSWORD) console.log('  ⚠ パスワードなし。PASSWORD=xxx を設定するとログインが必要になります');
 });
