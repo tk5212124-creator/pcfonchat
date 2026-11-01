@@ -1,0 +1,8 @@
+{
+  "name": "pcfonchat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PC と iPhone で文字やファイルをやり取りする軽量チャット",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
