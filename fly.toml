@@ -1,0 +1,28 @@
+# Fly.io 用設定。app の名前は `fly launch` 時に自分のものへ書き換わります。
+app = "pcfonchat"
+primary_region = "nrt"
+
+[build]
+
+[env]
+  KEEP_DAYS = "30"
+
+[mounts]
+  source = "pcfonchat_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
